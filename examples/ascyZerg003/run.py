@@ -11,11 +11,13 @@ from sc2.player import Bot, Computer
 
 # Load bot
 from bot.bot import ascyBot
+from bot.hydralisk_push import Hydralisk
 
 # Load maps
 from mapNames import mapNames
 
 ascyZerg = Bot(Race.Zerg, ascyBot())
+# ascyZerg = Bot(Race.Zerg, Hydralisk)
 
 # Start game
 if __name__ == "__main__":
