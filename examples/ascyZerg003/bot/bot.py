@@ -16,13 +16,7 @@ from sc2.game_state import Common
 
 
 class ascyBot(BotAI):
-    # def getValues(self):
-    # self.minerals = Common.minerals
-    # self.vespene = Common.vespene
-
-    async def on_step(self, iteration):
-        # self.getValues()
-        self.iteration = iteration
+    def getValues(self):
         self.larvas = self.units.of_type(UnitTypeId.LARVA)
         self.eggs = self.units.of_type(UnitTypeId.EGG)
 
@@ -101,185 +95,98 @@ class ascyBot(BotAI):
         self.eggVipersCnt = 0
 
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_DRONE]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_DRONE}):
                 self.eggDronesCnt = self.eggDronesCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_OVERLORD]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_OVERLORD}):
                 self.eggOverlordsCnt = self.eggOverlordsCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_ZERGLING]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_ZERGLING}):
                 self.eggZerglingsCnt = self.eggZerglingsCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_ROACH]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_ROACH}):
                 self.eggRoachesCnt = self.eggRoachesCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_HYDRALISK]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_HYDRALISK}):
                 self.eggHydralisksCnt = self.eggHydralisksCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_MUTALISK]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_MUTALISK}):
                 self.eggMutalisksCnt = self.eggMutalisksCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.TRAIN_SWARMHOST]):
+            if egg.is_using_ability({AbilityId.TRAIN_SWARMHOST}):
                 self.eggSwarmhostsCnt = self.eggSwarmhostsCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_INFESTOR]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_INFESTOR}):
                 self.eggInfestorsCnt = self.eggInfestorsCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_CORRUPTOR]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_CORRUPTOR}):
                 self.eggCorruptorsCnt = self.eggCorruptorsCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_ULTRALISK]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_ULTRALISK}):
                 self.eggUltralisksCnt = self.eggUltralisksCnt + 1
         for egg in self.eggs:
-            if egg.is_using_ability([AbilityId.LARVATRAIN_VIPER]):
+            if egg.is_using_ability({AbilityId.LARVATRAIN_VIPER}):
                 self.eggVipersCnt = self.eggVipersCnt + 1
 
-        # if self.hatcheries.amount < 2:
-        #     self.early_a()
+        # self.minerals -> initialized by default
+        # self.vespene -> initialized by default
 
-        # BUG
-        # EGGOVERLORDSCNT  BECOMES 1 AFTER FIRST ITERATION.
+    async def on_step(self, iteration):
+        self.iteration = iteration
+        self.getValues()
+
+        if self.hatcheries.amount < 2:
+            await self.early_a()
+
+        time.sleep(1 / 60)
+
+    async def early_a(self):
+        if not self.overlordScout1Sent:
+            self.overlordScout1 = self.units.of_type({UnitTypeId.OVERLORD})
+            self.overlordScout1[0].smart(self.enemy_start_locations[0])
+            self.overlordScout1Sent = True
+            print("overlordScout1Sent to enemy base.")
         if self.drones.amount + self.eggDronesCnt == 12:
-            if self.minerals >= 50:
-                print("A: ", self.iteration)
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
-                print("drone started")
+            if self.minerals >= 50 and self.larvas.amount > 0:
                 self.larvas.random.train(UnitTypeId.DRONE)
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_DRONE]):
-                        self.eggDronesCnt = self.eggDronesCnt + 1
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_OVERLORD]):
-                        self.eggOverlordsCnt = self.eggOverlordsCnt + 1
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
+                print("13th drone started")
         elif self.overlords.amount + self.eggOverlordsCnt == 1:
-            if self.minerals >= 100:
-                print("B: ", self.iteration)
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
-                print("overlord started")
+            if self.minerals >= 100 and self.larvas.amount > 0:
                 self.larvas.random.train(UnitTypeId.OVERLORD)
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_DRONE]):
-                        self.eggDronesCnt = self.eggDronesCnt + 1
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_OVERLORD]):
-                        self.eggOverlordsCnt = self.eggOverlordsCnt + 1
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
+                print("overlord started")
         elif (
             self.drones.amount + self.eggDronesCnt == 13
             and self.overlords.amount + self.eggOverlordsCnt == 2
         ):
-            if self.minerals >= 50:
-                print("C: ", self.iteration)
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
-                print("drone started")
+            if self.minerals >= 50 and self.larvas.amount > 0:
                 self.larvas.random.train(UnitTypeId.DRONE)
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_DRONE]):
-                        self.eggDronesCnt = self.eggDronesCnt + 1
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_OVERLORD]):
-                        self.eggOverlordsCnt = self.eggOverlordsCnt + 1
-                print(
-                    "self.drones.amount: ",
-                    self.drones.amount,
-                    " , self.eggDronesCnt: ",
-                    self.eggDronesCnt,
-                    " , self.overlords.amount: ",
-                    self.overlords.amount,
-                    " , self.eggOverlordsCnt: ",
-                    self.eggOverlordsCnt,
-                )
-        elif self.drones.amount + self.eggDronesCnt <= 16:
+                print("14th drone started")
+        elif self.drones.amount + self.eggDronesCnt < 16:
             if self.overlords.amount + self.eggOverlordsCnt == 2:
-                if self.minerals >= 50:
-                    print("D: ", self.iteration)
-                    print(
-                        "self.drones.amount: ",
-                        self.drones.amount,
-                        " , self.eggDronesCnt: ",
-                        self.eggDronesCnt,
-                        " , self.overlords.amount: ",
-                        self.overlords.amount,
-                        " , self.eggOverlordsCnt: ",
-                        self.eggOverlordsCnt,
-                    )
+                if (
+                    self.minerals >= 50
+                    and self.larvas.amount > 0
+                    and self.food_used < self.food_cap
+                ):
                     self.larvas.random.train(UnitTypeId.DRONE)
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_DRONE]):
-                        self.eggDronesCnt = self.eggDronesCnt + 1
-                for egg in self.eggs:
-                    if egg.is_using_ability([AbilityId.LARVATRAIN_OVERLORD]):
-                        self.eggOverlordsCnt = self.eggOverlordsCnt + 1
-                    print(
-                        "self.drones.amount: ",
-                        self.drones.amount,
-                        " , self.eggDronesCnt: ",
-                        self.eggDronesCnt,
-                        " , self.overlords.amount: ",
-                        self.overlords.amount,
-                        " , self.eggOverlordsCnt: ",
-                        self.eggOverlordsCnt,
-                    )
+                    print("15/16th drone started")
 
-        time.sleep(1 / 60)
-
-    # def early_a(self):
-
-    def printSth(self):
-        4
+        if self.drones.amount + self.eggDronesCnt >= 16:
+            if self.minerals >= 180:
+                # send a drone to natural for building the hatchery
+                print("sent a drone to natural for building the 2nd hatchery")
+                self.expanderDrone = self.units.of_type(UnitTypeId.DRONE)
+                self.expanderDrone[0].smart(self.get_next_expansion)
+                # await self.expand_now()
 
     async def on_start(self):
         await super().on_start()
         print("Game started")
         # Do things here before the game starts
         self.client.game_step = 1
-        # self.getValues()
+        self.getValues()
+        self.chat_send("gl hf", True)
+        self.overlordScout1Sent = False
 
     async def on_end(self, game_result: Result):
         print("Game ended.")
