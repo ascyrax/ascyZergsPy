@@ -143,13 +143,55 @@ class ascyBot(BotAI):
         #     await self.early_c()
 
         # await self.manageDrones()
-        # await self.manageOverlords()
+        if self.supply_cap > 25:
+            await self.manageOverlords()
         await self.chatJokes()
 
-        time.sleep(1 / 600)
+        # if self.iteration > 2400:
+        #     time.sleep(1 / 200)
+
+    async def early_b(self):
+        # 18 -> spawning pool
+        if self.drones.amount + self.eggDronesCnt < 18:
+            await self.trainDrone()
+        elif self.drones.amount == 18 and self.spawningPools.amount == 0:
+            await self.buildSpawningPool()
+        elif self.drones.amount + self.eggDronesCnt < 20:
+            await self.trainDrone()
+        # elif self.extractors.amount == 0:
+        #     await self.buildExtractor(self.hatcheries[0].position)
+
+        if self.spines.amount == 0:
+            await self.buildSpine(self.hatcheries[0].position)
+        # 20 -> extractor
+        # spine crawler on natural
+        # 15 zerg supply
+        if self.supply_army < self.supply_cap:
+            for larva in self.larvas:
+                larva.train(UnitTypeId.ZERGLING)
+
+        print(
+            self.supply_army, self.supply_cap - self.supply_workers - self.supply_army
+        )
+
+        if (
+            self.supply_army > 15
+            and self.supply_cap - self.supply_workers - self.supply_army < 10
+        ):
+            for zerg in self.zergs:
+                zerg.attack(self.enemy_start_locations[0])
+        # firstZergPush
+        # immediate roach warren
+
+    async def manageOverlords(self):
+        if self.supply_used >= self.supply_cap + self.eggOverlordsCnt * 8 - 8:
+            await self.trainOverlord()
 
     async def buildSpawningPool(self):
-        if self.minerals >= 200:
+        if (
+            self.minerals >= 200
+            and self.worker_en_route_to_build(UnitTypeId.SPAWNINGPOOL) == 0
+        ):
             self.spawningPoolPos = await self.find_placement(
                 UnitTypeId.SPAWNINGPOOL,
                 near=self.hatcheries.ready.first.position,
@@ -161,25 +203,45 @@ class ascyBot(BotAI):
             )
             if self.temp:
                 await self.build(UnitTypeId.SPAWNINGPOOL, near=self.spawningPoolPos)
-                print("tried to build the spawning pool")
+                print(
+                    self.iteration,
+                    " : second hatchery built at position: ",
+                    self.spawningPoolPos,
+                )
 
-    # async def buildSpine(self,Point2D pos):
-    #     if self.drones.amount>0 and self.can_afford(UnitTypeId.SPINECRAWLER):
-    #         self.tempPos=await self.find_placement(UnitTypeId.SPINECRAWLER,near=self.pos,)
+    async def buildSpine(self, pos):
+        if (
+            self.spawningPools.ready.amount > 0
+            and self.drones.amount > 0
+            and self.can_afford(UnitTypeId.SPINECRAWLER)
+            and self.worker_en_route_to_build(UnitTypeId.SPINECRAWLER) == 0
+        ):
+            self.buildPos = await self.find_placement(UnitTypeId.SPINECRAWLER, near=pos)
+            self.builderDrone = self.select_build_worker(self.buildPos)
+            if await self.can_place_single(UnitTypeId.SPINECRAWLER, self.buildPos):
+                self.builderDrone.build(UnitTypeId.SPINECRAWLER, self.buildPos)
+                print(
+                    self.iteration,
+                    ": defensive spine crawler built at location: ",
+                    pos,
+                )
 
-    async def early_b(self):
-        # 18 -> spawning pool
-        if self.drones.amount + self.eggDronesCnt < 18:
-            await self.trainDrone()
-        elif self.drones.amount == 18 and self.spawningPools.amount == 0:
-            await self.buildSpawningPool()
-        elif self.spines.amount == 0:
-            await self.buildSpine(self.hatcheries[1].position)
-        # 20 -> extractor
-        # spine crawler on natural
-        # 15 zerg supply
-        # firstZergPush
-        # immediate roach warren
+    async def buildExtractor(self, pos):
+        if (
+            self.drones.amount > 0
+            and self.can_afford(UnitTypeId.EXTRACTOR)
+            and self.worker_en_route_to_build(UnitTypeId.EXTRACTOR) == 0
+        ):
+            self.buildPos = await self.find_placement(UnitTypeId.EXTRACTOR, near=pos)
+            self.builderDrone = self.select_build_worker(self.buildPos)
+            if await self.can_place_single(UnitTypeId.EXTRACTOR, self.buildPos):
+                self.builderDrone.build(UnitTypeId.EXTRACTOR, self.buildPos)
+                print(
+                    self.iteration,
+                    " : Building Extractor no - ",
+                    self.extractors.amount + 1,
+                    " ",
+                )
 
     # async def early_c(self):
     # two base saturation
@@ -249,9 +311,9 @@ class ascyBot(BotAI):
             await self.expandToNatural()
 
     async def chatJokes(self):
-        if self.iteration == 200:
+        if self.iteration == 1000:
             await self.chat_send("Q. How did the programmer die in the shower?")
-        elif self.iteration == 800:
+        elif self.iteration == 1300:
             await self.chat_send(
                 "A. He read the shampoo bottle instructions: Lather. Rinse. Repeat."
             )
