@@ -54,32 +54,32 @@ class ascyBot(BotAI):
 
         self.nydusNets = self.units.of_type(UnitTypeId.NYDUSNETWORK)
 
-        self.hatcheries = self.units.of_type(UnitTypeId.HATCHERY)
-        self.lairs = self.units.of_type(UnitTypeId.LAIR)
-        self.hives = self.units.of_type(UnitTypeId.HIVE)
+        self.hatcheries = self.structures.of_type(UnitTypeId.HATCHERY)
+        self.lairs = self.structures.of_type(UnitTypeId.LAIR)
+        self.hives = self.structures.of_type(UnitTypeId.HIVE)
 
-        self.extractors = self.units.of_type(UnitTypeId.EXTRACTOR)
+        self.extractors = self.structures.of_type(UnitTypeId.EXTRACTOR)
 
-        self.spawnPools = self.units.of_type(UnitTypeId.SPAWNINGPOOL)
-        self.baneNests = self.units.of_type(UnitTypeId.BANELINGNEST)
+        self.spawningPools = self.structures.of_type(UnitTypeId.SPAWNINGPOOL)
+        self.banelingNests = self.structures.of_type(UnitTypeId.BANELINGNEST)
 
-        self.roachWarrens = self.units.of_type(UnitTypeId.ROACHWARREN)
+        self.roachWarrens = self.structures.of_type(UnitTypeId.ROACHWARREN)
 
-        self.spines = self.units.of_type(UnitTypeId.SPINECRAWLER)
-        self.spores = self.units.of_type(UnitTypeId.SPORECRAWLER)
-        self.creeps = self.units.of_type(UnitTypeId.CREEPTUMOR)
+        self.spines = self.structures.of_type(UnitTypeId.SPINECRAWLER)
+        self.spores = self.structures.of_type(UnitTypeId.SPORECRAWLER)
+        self.creeps = self.structures.of_type(UnitTypeId.CREEPTUMOR)
 
-        self.evoChambers = self.units.of_type(UnitTypeId.EVOLUTIONCHAMBER)
+        self.evolutionChambers = self.structures.of_type(UnitTypeId.EVOLUTIONCHAMBER)
 
-        self.hydraDens = self.units.of_type(UnitTypeId.HYDRALISKDEN)
-        self.lurkerDens = self.units.of_type(UnitTypeId.LURKERDEN)
+        self.hydraliskDens = self.structures.of_type(UnitTypeId.HYDRALISKDEN)
+        self.lurkerDens = self.structures.of_type(UnitTypeId.LURKERDEN)
 
-        self.infestPits = self.units.of_type(UnitTypeId.INFESTATIONPIT)
+        self.infestationPits = self.structures.of_type(UnitTypeId.INFESTATIONPIT)
 
-        self.spires = self.units.of_type(UnitTypeId.SPIRE)
-        self.greaterSpires = self.units.of_type(UnitTypeId.GREATERSPIRE)
+        self.spires = self.structures.of_type(UnitTypeId.SPIRE)
+        self.greaterSpires = self.structures.of_type(UnitTypeId.GREATERSPIRE)
 
-        self.ultraCaverns = self.units.of_type(UnitTypeId.ULTRALISKCAVERN)
+        self.ultralisksCaverns = self.structures.of_type(UnitTypeId.ULTRALISKCAVERN)
 
         # eggs which are being morphed into some other unit
         self.eggDronesCnt = 0
@@ -137,8 +137,95 @@ class ascyBot(BotAI):
 
         if self.hatcheries.amount < 2:
             await self.early_a()
+        elif self.roachWarrens.amount < 1:
+            await self.early_b()
+        # if self.hydraliskDens.amount < 1:
+        #     await self.early_c()
 
-        time.sleep(1 / 60)
+        # await self.manageDrones()
+        # await self.manageOverlords()
+        await self.chatJokes()
+
+        time.sleep(1 / 600)
+
+    async def buildSpawningPool(self):
+        if self.minerals >= 200:
+            self.spawningPoolPos = await self.find_placement(
+                UnitTypeId.SPAWNINGPOOL,
+                near=self.hatcheries.ready.first.position,
+                placement_step=8,
+            )
+            print(self.spawningPoolPos)
+            self.temp = await self.can_place_single(
+                building=UnitTypeId.SPAWNINGPOOL, position=self.spawningPoolPos
+            )
+            if self.temp:
+                await self.build(UnitTypeId.SPAWNINGPOOL, near=self.spawningPoolPos)
+                print("tried to build the spawning pool")
+
+    # async def buildSpine(self,Point2D pos):
+    #     if self.drones.amount>0 and self.can_afford(UnitTypeId.SPINECRAWLER):
+    #         self.tempPos=await self.find_placement(UnitTypeId.SPINECRAWLER,near=self.pos,)
+
+    async def early_b(self):
+        # 18 -> spawning pool
+        if self.drones.amount + self.eggDronesCnt < 18:
+            await self.trainDrone()
+        elif self.drones.amount == 18 and self.spawningPools.amount == 0:
+            await self.buildSpawningPool()
+        elif self.spines.amount == 0:
+            await self.buildSpine(self.hatcheries[1].position)
+        # 20 -> extractor
+        # spine crawler on natural
+        # 15 zerg supply
+        # firstZergPush
+        # immediate roach warren
+
+    # async def early_c(self):
+    # two base saturation
+    # 50 roach supply
+    # firstRoachPush
+    # immediateHydraDen
+
+    async def trainDrone(self):
+        if (
+            self.minerals >= 50
+            and self.larvas.amount > 0
+            and self.supply_used < self.supply_cap
+        ):
+            self.larvas.random.train(UnitTypeId.DRONE)
+            print(
+                self.iteration,
+                " : Training Drone no - ",
+                self.drones.amount + self.eggDronesCnt + 1,
+                " ",
+            )
+
+    async def trainOverlord(self):
+        if self.minerals >= 100 and self.larvas.amount > 0:
+            self.larvas.random.train(UnitTypeId.OVERLORD)
+            print(
+                self.iteration,
+                " : Training Overlord no - ",
+                self.overlords.amount + self.eggOverlordsCnt + 1,
+                " ",
+            )
+
+    async def expandToNatural(self):
+        if self.minerals >= 180:
+            # send a drone to natural for building the hatchery
+            if not self.naturalDroneSent:
+                self.naturalDroneSent = True
+                print("sent a drone to natural for building the 2nd hatchery")
+                self.expanderDrones = self.units.of_type(UnitTypeId.DRONE)
+                self.expanderDrones[0].smart(await self.get_next_expansion())
+            elif (
+                self.naturalDroneSent
+                and self.minerals >= 300
+                and self.hatcheries.amount < 2
+            ):
+                print("built a natural.")
+                await self.expand_now()
 
     async def early_a(self):
         if not self.overlordScout1Sent:
@@ -147,47 +234,61 @@ class ascyBot(BotAI):
             self.overlordScout1Sent = True
             print("overlordScout1Sent to enemy base.")
         if self.drones.amount + self.eggDronesCnt == 12:
-            if self.minerals >= 50 and self.larvas.amount > 0:
-                self.larvas.random.train(UnitTypeId.DRONE)
-                print("13th drone started")
+            await self.trainDrone()
         elif self.overlords.amount + self.eggOverlordsCnt == 1:
-            if self.minerals >= 100 and self.larvas.amount > 0:
-                self.larvas.random.train(UnitTypeId.OVERLORD)
-                print("overlord started")
+            await self.trainOverlord()
         elif (
             self.drones.amount + self.eggDronesCnt == 13
             and self.overlords.amount + self.eggOverlordsCnt == 2
         ):
-            if self.minerals >= 50 and self.larvas.amount > 0:
-                self.larvas.random.train(UnitTypeId.DRONE)
-                print("14th drone started")
+            await self.trainDrone()
         elif self.drones.amount + self.eggDronesCnt < 16:
             if self.overlords.amount + self.eggOverlordsCnt == 2:
-                if (
-                    self.minerals >= 50
-                    and self.larvas.amount > 0
-                    and self.food_used < self.food_cap
-                ):
-                    self.larvas.random.train(UnitTypeId.DRONE)
-                    print("15/16th drone started")
-
+                await self.trainDrone()
         if self.drones.amount + self.eggDronesCnt >= 16:
-            if self.minerals >= 180:
-                # send a drone to natural for building the hatchery
-                print("sent a drone to natural for building the 2nd hatchery")
-                self.expanderDrone = self.units.of_type(UnitTypeId.DRONE)
-                self.expanderDrone[0].smart(self.get_next_expansion)
-                # await self.expand_now()
+            await self.expandToNatural()
+
+    async def chatJokes(self):
+        if self.iteration == 200:
+            await self.chat_send("Q. How did the programmer die in the shower?")
+        elif self.iteration == 800:
+            await self.chat_send(
+                "A. He read the shampoo bottle instructions: Lather. Rinse. Repeat."
+            )
+        elif self.iteration == 3000:
+            await self.chat_send('Man: "Make me a sandwich"')
+        elif self.iteration == 3200:
+            await self.chat_send('Woman: "No"')
+        elif self.iteration == 3400:
+            await self.chat_send('Man: "sudo Make me a sandwich"')
+        elif self.iteration == 3600:
+            await self.chat_send('Woman: "Okay"')
+        elif self.iteration == 10000:
+            await self.chat_send(
+                "There are 10 kinds of people in this world: those who know binary, those who don’t, and those who didn't expect this joke to be in ternary."
+            )
 
     async def on_start(self):
         await super().on_start()
-        print("Game started")
+        print()
+        print()
+        print("GAME STARTED")
+        print()
+        print()
         # Do things here before the game starts
         self.client.game_step = 1
         self.getValues()
-        self.chat_send("gl hf", True)
+        await self.chat_send("gl hf", False)
         self.overlordScout1Sent = False
+        self.naturalDroneSent = False
+        # self.spawnPool
 
     async def on_end(self, game_result: Result):
-        print("Game ended.")
+        await self.chat_send("gg wp")
+        await self.chat_send("byeeeeeee. cya again.")
+        print()
+        print()
+        print("GAME ENDED.")
+        print()
+        print()
         # Do things here after the game ends
